@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Winslow.Domain\Winslow.Domain.fsproj" />
+    <ProjectReference Include="..\Winslow.Application\Winslow.Application.fsproj" />
+    <ProjectReference Include="..\Winslow.Infrastructure\Winslow.Infrastructure.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Falco" Version="4.*" />
+  </ItemGroup>
+</Project>

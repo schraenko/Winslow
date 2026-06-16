@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="InMemoryEventPublisher.fs" />
+    <Compile Include="InMemoryRequirementRepository.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Winslow.Domain\Winslow.Domain.fsproj" />
+    <ProjectReference Include="..\Winslow.Application\Winslow.Application.fsproj" />
+  </ItemGroup>
+</Project>

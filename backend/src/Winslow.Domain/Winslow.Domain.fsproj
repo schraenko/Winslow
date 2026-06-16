@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Common/Errors.fs" />
+    <Compile Include="Common/Types.fs" />
+    <Compile Include="Requirements/RequirementTypes.fs" />
+    <Compile Include="Requirements/RequirementEvents.fs" />
+    <Compile Include="Requirements/Requirement.fs" />
+    <Compile Include="Projects/ProjectTypes.fs" />
+    <Compile Include="Projects/Project.fs" />
+  </ItemGroup>
+</Project>
