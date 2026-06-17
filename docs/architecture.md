@@ -69,7 +69,7 @@ graph TB
     subgraph "Winslow.Application - Use Cases"
         CmdHandler["CommandHandlers"]
         QueryHandler["QueryHandlers"]
-        Ports["IRequirementRepository / IEventPublisher"]
+        Ports["RequirementRepository / EventStore / EventPublisher (record types)"]
         TaskResultCE["taskResult builder"]
     end
 
@@ -84,6 +84,8 @@ graph TB
 
     subgraph "Winslow.Infrastructure - Adapters"
         InMemRepo["InMemoryRequirementRepository"]
+        InMemStore["InMemoryEventStore"]
+        InMemRead["InMemoryRequirementReadStore"]
         InMemPub["InMemoryEventPublisher"]
     end
 
@@ -100,7 +102,10 @@ graph TB
     ReqAgg --> Types
     ReqAgg --> ResultCE
     Ports --> InMemRepo
+    Ports --> InMemStore
     Ports --> InMemPub
+    CmdHandler --> InMemRead
+    QueryHandler --> InMemRead
     ErrorHandler --> Errors
 ```
 
@@ -114,7 +119,7 @@ The innermost layer with **zero dependencies**. It contains:
 | `Common/Errors.fs` | `DomainError` (5 cases), `AppError` (3 cases) |
 | `Requirements/RequirementTypes.fs` | `RequirementStatus`, `RequirementPriority` (MoSCoW), `RequirementKind`, `AcceptanceCriteria` |
 | `Requirements/RequirementEvents.fs` | `RequirementEvent` union with 4 event types |
-| `Requirements/Requirement.fs` | `Requirement` record, `create`, `update`, `transitionStatus` |
+| `Requirements/Requirement.fs` | `Requirement` opaque DU (private constructor), `create`, `update`, `transitionStatus`, field accessor functions, `hydrate` |
 | `Projects/ProjectTypes.fs` | `ProjectStatus`, `ProjectMethodology` |
 | `Projects/Project.fs` | `Project` record, `create` |
 
@@ -124,17 +129,21 @@ All domain functions are **pure** — they take input, validate, and return `Res
 
 Orchestrates use cases via **Command Handlers** and **Query Handlers**. Depends only on the Domain layer.
 
-**Ports** (interfaces):
-- `IRequirementRepository` — `FindById`, `FindByProject`, `Save`, `Delete`
-- `IEventPublisher` — `Publish`
+**Ports** (records of functions):
+- `RequirementRepository` — `FindById`, `FindByProject`, `Save`, `Delete`
+- `EventPublisher` — `Publish`
+- `EventStore` — `Append`, `ReadStream` (append-only event stream)
+- `RequirementReadStore` — `GetById`, `GetByProject`, `Upsert`, `Delete`
 
 **Handlers** use the `taskResult { }` computation expression to chain async operations with Railway-Oriented Programming:
 
 ```
-Command -> Domain function -> repo.Save -> publisher.Publish -> Result
+Command -> Domain function -> repo.Save -> eventStore.Append -> readStore.Upsert -> publisher.Publish -> Result
 ```
 
 **Read Models** are string-typed DTOs (all DU wrappers unwrapped) for direct JSON serialization.
+
+Bind operators `>>=` are available for both `Result` (domain layer) and `Task<Result<_,_>>` (application layer) for explicit pipe-style chaining.
 
 ### 2.4 Infrastructure Layer (`Winslow.Infrastructure`)
 
@@ -142,7 +151,9 @@ Implements the ports:
 
 | Adapter | Implementation | Notes |
 |---------|---------------|-------|
-| `InMemoryRequirementRepository` | `ConcurrentDictionary<Guid, Requirement>` | Seeds 2 demo requirements, no persistence |
+| `InMemoryRequirementRepository` | `ConcurrentDictionary<Guid, Requirement>` | Seeds 2 demo requirements, factory function returning `RequirementRepository` record |
+| `InMemoryEventStore` | `ConcurrentDictionary<Guid, EventEnvelope list>` | Append-only event stream with versioning |
+| `InMemoryRequirementReadStore` | `ConcurrentDictionary<Guid, RequirementReadModel>` | Denormalized read projection, dual-written from command handlers |
 | `InMemoryEventPublisher` | `printfn` | Logs event type + description to console |
 
 ### 2.5 API Layer (`Winslow.API`)
@@ -541,3 +552,24 @@ Winslow/
 | Riverpod with override pattern | Clean dependency injection - repository provider throws by default, overridden in `main.dart` |
 | Optimistic UI updates | Instant feedback for status transitions; reconciled on API response |
 | Manual serialization (no freezed) | Simplicity for current scale; toolchain is ready for future code-gen adoption |
+
+---
+
+## 10. Resolved Issues
+
+Issues from the original MVP audit that have been addressed.
+
+| # | Issue | Resolution |
+|---|-------|------------|
+| O-1 | **Anemic aggregate** — `Requirement` was a public record; any layer could bypass domain functions and modify fields via `{ req with Status = Approved }`. | Changed to single-case DU with `private` constructor; all access through module functions (`create`, `transitionStatus`, `update`, `hydrate`) |
+| O-2 | **No event sourcing** — Events were printed to console and discarded. | `EventStore` port + `InMemoryEventStore` implementation appends events with versioning; `EventEnvelope` wraps events with metadata |
+| O-3 | **CQRS-lite** — Read models mapped from the same aggregate repository. | `RequirementReadStore` port + `InMemoryRequirementReadStore`; query handlers read from read store, command handlers dual-write to both stores |
+| O-4 | **OO interfaces vs F# idioms** — `IRequirementRepository` and `IEventPublisher` were .NET interfaces. | Replaced with records of functions (`RequirementRepository`, `EventPublisher`, `EventStore`) |
+| O-6 | **Duplicate read models** — `RequirementReadModel` and `RequirementListItem` were identical. | Unified into single `RequirementReadModel` type |
+| O-7 | **Missing aggregate boundary** — Repository returned full aggregate to any caller. | Aggregate is now opaque (private DU constructor); repository can store/load but callers must use accessor functions |
+
+## 11. Remaining Open Issues
+
+| # | Issue | Impact | Files | Intended Fix |
+|---|-------|--------|-------|--------------|
+| O-5 | **No domain services or specifications** — Cross-aggregate logic and query filtering are inlined in handlers rather than expressed as domain concepts. | Domain logic leaks into Application layer | `Application/Requirements/QueryHandlers.fs`, `Domain/` | Introduce domain services for multi-aggregate workflows; specification types for queries |

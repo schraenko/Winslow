@@ -6,7 +6,7 @@
 
 ### 1.1 Overview
 
-Winslow is a project management suite for capturing, reviewing, approving, and tracking requirements. It consists of an F# REST API (backend) and a Flutter cross-platform client (frontend).
+Winslow is a project management suite for capturing, reviewing, approving, and tracking requirements, as well as planning and executing work using agile (Scrum/Kanban) or hybrid (waterfall-agile) methodologies. It consists of an F# REST API (backend) and a Flutter cross-platform client (frontend).
 
 ### 1.2 Goals
 
@@ -17,27 +17,37 @@ Winslow is a project management suite for capturing, reviewing, approving, and t
 | G-3 | Medium | Support MoSCoW prioritisation and requirement typing (functional/non-functional) |
 | G-4 | Medium | Enable plugin-based feature isolation on the frontend |
 | G-5 | Low | Be ready for PostgreSQL persistence and event-driven integrations |
+| G-6 | High | Provide agile project planning with backlog hierarchy, sprints, and boards |
 
 ### 1.3 Stakeholders
 
 | Role | Interest |
 |------|----------|
-| Product Owner | Define and prioritise requirements |
-| Developer | Implement and track requirement status |
+| Product Owner | Define and prioritise requirements and backlog items |
+| Developer | Implement, track, and update work items on the board |
 | Reviewer | Approve or reject submitted requirements |
+| Scrum Master | Facilitate sprint ceremonies and remove impediments |
+| Team | Execute sprint backlog and self-organise |
 
 ---
 
 ## 2. Constraints
 
-| ID | Constraint | Rationale |
-|----|------------|-----------|
-| CON-1 | The backend shall use F# with .NET 10. | Technology stack decision |
-| CON-2 | The frontend shall use Flutter with Riverpod state management. | Technology stack decision |
-| CON-3 | All domain logic shall be pure with zero dependencies. | DDD principle |
-| CON-4 | Error handling shall use Railway-Oriented Programming (no exceptions for control flow). | Architectural decision |
-| CON-5 | Backend shall run with an in-memory repository by default; no external database required for development. | Zero-setup local development |
-| CON-6 | The API shall expose JSON with camelCase naming convention. | Frontend interop requirement |
+| ID | Constraint | Rationale | Status |
+|----|------------|-----------|--------|
+| CON-1 | The backend shall use F# with .NET 10. | Technology stack decision | ✅ |
+| CON-2 | The frontend shall use Flutter with Riverpod state management. | Technology stack decision | ✅ |
+| CON-3 | All domain logic shall be pure with zero dependencies. | DDD principle | ✅ |
+| CON-4 | Error handling shall use Railway-Oriented Programming (no exceptions for control flow). | Architectural decision | ✅ |
+| CON-5 | Backend shall run with an in-memory repository by default; no external database required for development. | Zero-setup local development | ✅ |
+| CON-6 | The API shall expose JSON with camelCase naming convention. | Frontend interop requirement | ✅ |
+| CON-7 | All backend code shall be written in a functional style using F# idioms: expression-based constructs over statements, pipelines over nested calls, and immutable data by default. | Codebase consistency, maintainability | ✅ |
+| CON-8 | The backend shall leverage the latest F# language features available in .NET 10 (e.g. required expressions, extended list/array operations, inline-if). | Stay current with the ecosystem | ✅ |
+| CON-9 | Mutable values, loops, and imperative control flow shall be avoided unless required by interop or performance profiling. | Functional purity, reasoning simplicity | ✅ |
+| CON-10 | The pipe operator shall be used for data transformation pipelines; the bind operator shall be preferred over manual nesting in computation expressions. | Idiomatic F# style, readability | ✅ |
+| CON-11 | Object-oriented patterns (inheritance, interfaces for abstraction, mutable classes) shall be avoided in favour of discriminated unions, module functions, and type aliases. | Align with F# strengths, avoid OO overhead | ✅ |
+| CON-12 | Commands and queries shall be separated (CQRS): read operations shall not cause side effects; write operations shall not return domain data beyond acknowledgements. | Clear separation of concerns, optimisable read/write paths | ✅ |
+| CON-13 | All state changes shall be persisted as an append-only event stream to enable state replay, audit trails, and debugging. | Event sourcing principle, full reproducibility | ✅ |
 
 ---
 
@@ -66,12 +76,18 @@ graph LR
 - MoSCoW prioritisation
 - Functional / non-functional requirement classification
 - Plugin-based frontend architecture
+- Backlog item hierarchy (Epic → Feature → PBI → Task, Bug, Impediment)
+- Product Backlog and Sprint Backlog boards
+- Sprint management (create, activate, complete)
+- Scrum mode (sprint lifecycle, burndown, velocity)
+- Kanban mode (continuous flow, WIP limits, custom columns)
+- Hybrid planning (phases containing sprints, gated milestones)
 
 **Out of scope (future):**
 - User authentication and authorisation (JWT)
-- Project management (epics, sprints)
 - Ideation and voting
 - Real-time collaboration
+- Gantt chart rendering
 
 ---
 
@@ -82,6 +98,8 @@ graph LR
 - **Railway-Oriented Programming** via custom `result { }` and `taskResult { }` computation expressions
 - **Plugin system** on frontend via abstract `SuitePlugin` class and singleton `PluginRegistry`
 - **Optimistic UI updates** for status transitions, reconciled on API response
+- **Single Project Management plugin** with methodology-driven views (Scrum, Kanban, Hybrid)
+- **Two-board model** — Product Backlog for hierarchy and prioritisation, Sprint Backlog for execution
 
 ---
 
@@ -129,6 +147,57 @@ Draft
 |----|-------|-------------|----------|
 | REQ-FUNC-020 | Publish RequirementCreated | The system shall publish a RequirementCreated event after a requirement is successfully created. | Should |
 | REQ-FUNC-021 | Publish RequirementStatusChanged | The system shall publish a RequirementStatusChanged event after a successful status transition. | Should |
+
+#### 5.1.5 Backlog Item Management
+
+| ID | Title | Description | Priority |
+|----|-------|-------------|----------|
+| REQ-FUNC-030 | Create Backlog Item | The system shall allow creating a backlog item with type (Epic, Feature, PBI, Task, Bug, Impediment), title, description, and priority. | Must |
+| REQ-FUNC-031 | Create Backlog Item with Parent | The system shall require a parent ID for all item types except Epic, and shall enforce the hierarchy rules: Epic → Feature → PBI → Task; Bug, Impediment under Feature. | Must |
+| REQ-FUNC-032 | Update Backlog Item | The system shall allow updating title, description, priority, story points (PBI, Bug), and effort (Task) of a backlog item. | Must |
+| REQ-FUNC-033 | List Product Backlog | The system shall return all backlog items not assigned to a sprint, grouped by hierarchy. | Must |
+| REQ-FUNC-034 | Reorder Backlog | The system shall allow reordering backlog items by priority within the same parent. | Should |
+
+#### 5.1.6 Sprint Management
+
+| ID | Title | Description | Priority |
+|----|-------|-------------|----------|
+| REQ-FUNC-040 | Create Sprint | The system shall allow creating a sprint with name, goal, start date, and end date. | Must |
+| REQ-FUNC-041 | Activate Sprint | The system shall transition a sprint from Planned to Active. | Must |
+| REQ-FUNC-042 | Complete Sprint | The system shall transition a sprint from Active to Completed and automatically move unfinished items back to the Product Backlog. | Must |
+| REQ-FUNC-043 | Pull Item into Sprint | The system shall allow assigning a PBI, Bug, or Impediment from the Product Backlog to an active sprint. | Must |
+| REQ-FUNC-044 | List Sprint Backlog | The system shall return all items assigned to a given sprint, showing PBIs, Bugs, Impediments with their child Tasks. | Must |
+
+#### 5.1.7 Board Operations
+
+| ID | Title | Description | Priority |
+|----|-------|-------------|----------|
+| REQ-FUNC-050 | Move Item on Board | The system shall allow moving a backlog item between board columns. | Must |
+| REQ-FUNC-051 | Configure Columns | The system shall allow configuring board columns with name, order, and optional WIP limit per project or per sprint. | Should |
+| REQ-FUNC-052 | Enforce WIP Limit | The system shall prevent moving an item into a column that has reached its WIP limit (Kanban mode). | Should |
+| REQ-FUNC-053 | Complete PBI Completes Tasks | The system shall automatically mark all child Tasks as Done when their parent PBI is moved to the Done column. | Should |
+
+#### 5.1.8 Velocity and Burndown
+
+| ID | Title | Description | Priority |
+|----|-------|-------------|----------|
+| REQ-FUNC-060 | Track Sprint Velocity | The system shall calculate velocity as total story points completed per sprint. | Should |
+| REQ-FUNC-061 | Burndown Chart | The system shall display a burndown chart showing remaining story points over the sprint duration. | Could |
+
+#### 5.1.9 Kanban Mode
+
+| ID | Title | Description | Priority |
+|----|-------|-------------|----------|
+| REQ-FUNC-070 | Kanban Board | The system shall provide a continuous-flow board without sprint boundaries when the project methodology is Kanban. | Should |
+| REQ-FUNC-071 | Custom Kanban Columns | The system shall allow the project to define custom columns with individual WIP limits. | Should |
+
+#### 5.1.10 Hybrid Mode (Waterfall + Agile)
+
+| ID | Title | Description | Priority |
+|----|-------|-------------|----------|
+| REQ-FUNC-080 | Create Phase | The system shall allow creating a named phase with start and end date within a project. | Could |
+| REQ-FUNC-081 | Link Backlog Item to Phase | The system shall allow linking a Feature or PBI to a phase. | Could |
+| REQ-FUNC-082 | Gated Milestone | The system shall allow creating a milestone that blocks progression to the next phase until approved. | Could |
 
 ### 5.2 Quality Requirements
 
@@ -179,7 +248,40 @@ Application --> API: Ok
 API --> Client: 200 OK
 ```
 
----
+### 6.3 Sprint Planning
+
+```
+Client -> API: POST /sprints { name, goal, startDate, endDate, projectId }
+API -> Application: handleCreateSprint
+Application -> Domain: Sprint.create
+Domain --> Application: Ok sprint
+Application -> Infrastructure: repo.SaveSprint
+Application --> API: Ok sprintId
+API --> Client: 201 Created
+
+Client -> API: PATCH /backlog/{itemId}/assign { sprintId }
+API -> Application: handleAssignToSprint
+Application -> Infrastructure: repo.FindBacklogItem
+Application -> Domain: assignToSprint
+Domain --> Application: Ok updated item
+Application -> Infrastructure: repo.SaveBacklogItem
+Application --> API: Ok
+API --> Client: 200 OK
+```
+
+### 6.4 Move Item on Board
+
+```
+Client -> API: PATCH /board/move { itemId, targetColumnId }
+API -> Application: handleMoveItem
+Application -> Infrastructure: repo.FindBacklogItem
+Application -> Infrastructure: repo.FindBoardColumn
+Application -> Domain: moveItem (validates WIP limit)
+Domain --> Application: Ok (updated item)
+Application -> Infrastructure: repo.SaveBacklogItem
+Application --> API: Ok
+API --> Client: 200 OK
+```
 
 ## 7. Deployment View
 
@@ -246,6 +348,7 @@ HTTP status code mapping:
 | AD-5 | Plugin-based frontend | Feature isolation per domain |
 | AD-6 | Optimistic UI updates | Instant user feedback for transitions |
 | AD-7 | Manual serialization (no freezed) | Simplicity at current scale |
+| AD-8 | Single Project Management plugin | Shared concepts (milestones, timeline, backlog) belong together; hybrid projects need both paradigms in one place |
 
 ---
 
@@ -279,6 +382,8 @@ HTTP status code mapping:
 | RISK-2 | No authentication/authorisation implemented | Unauthorised API access | Add JWT token handling next iteration |
 | RISK-3 | No test coverage | Regression risk | Set up test projects and CI pipeline |
 | RISK-4 | Android app uses debug signing config | Cannot publish to Play Store | Configure release signing before distribution |
+| RISK-5 | Backlog hierarchy validation (no orphans) must be enforced consistently | Data integrity issues | Implement validation at Domain layer with unit tests |
+| RISK-6 | Board WIP limits could cause UX frustration if not clearly communicated | User confusion | Show visual warning before enforcing the limit |
 
 ---
 
@@ -295,3 +400,12 @@ HTTP status code mapping:
 | IREB | International Requirements Engineering Board |
 | Aggregate Root | A domain entity that guarantees consistency of a group of related objects |
 | Plugin | A self-contained frontend feature module registered at startup |
+| Product Backlog | Ordered list of all Epics, Features, PBIs, Bugs, and Impediments not yet assigned to a sprint |
+| Sprint Backlog | Set of PBIs, Bugs, Impediments, and Tasks pulled into the current sprint for execution |
+| PBI | Product Backlog Item — a unit of value refined from a Feature, estimated in story points |
+| Epic | A large body of work that spans multiple features, potentially across phases |
+| Feature | A capability decomposed from an Epic, broken into PBIs |
+| Impediment | A blocker that prevents progress, always tied to a Feature |
+| Velocity | Total story points completed per sprint, used for forecasting |
+| WIP Limit | Work-in-Progress limit, restricts the number of items in a Kanban column |
+| Sprint | A timeboxed iteration with a goal, start date, and end date |

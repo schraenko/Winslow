@@ -29,6 +29,40 @@ module UserId =
     let create ()  = UserId (Guid.NewGuid())
     let value (UserId id) = id
 
+type BacklogItemId = BacklogItemId of Guid
+type SprintId      = SprintId of Guid
+type PhaseId       = PhaseId of Guid
+type BoardColumnId = BoardColumnId of Guid
+type MilestoneId   = MilestoneId of Guid
+
+module BacklogItemId =
+    let create () = BacklogItemId (Guid.NewGuid())
+    let value (BacklogItemId id) = id
+    let parse (s: string) =
+        match Guid.TryParse(s) with
+        | true, g  -> Ok (BacklogItemId g)
+        | false, _ -> Error $"Ungültige BacklogItemId: {s}"
+
+module SprintId =
+    let create () = SprintId (Guid.NewGuid())
+    let value (SprintId id) = id
+    let parse (s: string) =
+        match Guid.TryParse(s) with
+        | true, g  -> Ok (SprintId g)
+        | false, _ -> Error $"Ungültige SprintId: {s}"
+
+module PhaseId =
+    let create () = PhaseId (Guid.NewGuid())
+    let value (PhaseId id) = id
+
+module BoardColumnId =
+    let create () = BoardColumnId (Guid.NewGuid())
+    let value (BoardColumnId id) = id
+
+module MilestoneId =
+    let create () = MilestoneId (Guid.NewGuid())
+    let value (MilestoneId id) = id
+
 // ── Timestamps ────────────────────────────────────────────────────────────────
 
 type Timestamp = Timestamp of DateTimeOffset
@@ -46,6 +80,10 @@ type ResultBuilder() =
     member _.Zero()           = Ok ()
 
 let result = ResultBuilder()
+
+// ── Bind operator (CON-10) ────────────────────────────────────────────────────
+
+let (>>=) = Result.bind
 
 // ── Non-empty string ──────────────────────────────────────────────────────────
 

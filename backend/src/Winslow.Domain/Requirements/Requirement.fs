@@ -5,9 +5,11 @@ open Winslow.Domain.Common.Errors
 open Winslow.Domain.Requirements.RequirementTypes
 open Winslow.Domain.Requirements.RequirementEvents
 
-// ── Aggregat ──────────────────────────────────────────────────────────────────
+// ── Aggregat (DU with private constructor) ───────────────────────────────────
 
-type Requirement = {
+type Requirement = private Requirement of RequirementData
+
+and RequirementData = {
     Id                 : RequirementId
     ProjectId          : ProjectId
     Title              : RequirementTitle
@@ -20,6 +22,49 @@ type Requirement = {
     CreatedAt          : Timestamp
     UpdatedAt          : Timestamp
 }
+
+// ── Public accessor functions ─────────────────────────────────────────────────
+
+let requirementId      (Requirement data) = data.Id
+let projectId          (Requirement data) = data.ProjectId
+let title              (Requirement data) = data.Title
+let description        (Requirement data) = data.Description
+let status             (Requirement data) = data.Status
+let priority           (Requirement data) = data.Priority
+let kind               (Requirement data) = data.Kind
+let acceptanceCriteria (Requirement data) = data.AcceptanceCriteria
+let authorId           (Requirement data) = data.AuthorId
+let createdAt          (Requirement data) = data.CreatedAt
+let updatedAt          (Requirement data) = data.UpdatedAt
+
+/// Hydrate a Requirement from raw values (for repository / seed data only).
+/// Does not validate invariants — caller is responsible for ensuring consistency.
+let hydrate
+    (id                 : RequirementId)
+    (projectId          : ProjectId)
+    (title              : RequirementTitle)
+    (description        : string)
+    (status             : RequirementStatus)
+    (priority           : RequirementPriority)
+    (kind               : RequirementKind)
+    (acceptanceCriteria : AcceptanceCriteria)
+    (authorId           : UserId)
+    (createdAt          : Timestamp)
+    (updatedAt          : Timestamp)
+    : Requirement =
+    Requirement {
+        Id                 = id
+        ProjectId          = projectId
+        Title              = title
+        Description        = description
+        Status             = status
+        Priority           = priority
+        Kind               = kind
+        AcceptanceCriteria = acceptanceCriteria
+        AuthorId           = authorId
+        CreatedAt          = createdAt
+        UpdatedAt          = updatedAt
+    }
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
@@ -38,7 +83,7 @@ let create (input: CreateRequirementInput) : Result<Requirement * RequirementEve
         let! title    = RequirementTitle.create input.Title
         let! criteria = AcceptanceCriteria.create input.AcceptanceCriteria
         let now       = Timestamp.now ()
-        let req = {
+        let data = {
             Id                 = RequirementId.create ()
             ProjectId          = input.ProjectId
             Title              = title
@@ -52,13 +97,13 @@ let create (input: CreateRequirementInput) : Result<Requirement * RequirementEve
             UpdatedAt          = now
         }
         let event = RequirementCreated {
-            RequirementId = req.Id
-            ProjectId     = req.ProjectId
-            Title         = RequirementTitle.value req.Title
-            AuthorId      = req.AuthorId
+            RequirementId = data.Id
+            ProjectId     = data.ProjectId
+            Title         = RequirementTitle.value data.Title
+            AuthorId      = data.AuthorId
             OccurredAt    = now
         }
-        return req, event
+        return Requirement data, event
     }
 
 // ── Statusübergang ────────────────────────────────────────────────────────────
@@ -68,16 +113,17 @@ let transitionStatus
     (req       : Requirement)
     : Result<Requirement * RequirementEvent, DomainError> =
     result {
-        let! _  = RequirementStatus.transition req.Status newStatus
+        let (Requirement data) = req
+        let! _  = RequirementStatus.transition data.Status newStatus
         let now = Timestamp.now ()
-        let updated = { req with Status = newStatus; UpdatedAt = now }
+        let updatedData = { data with Status = newStatus; UpdatedAt = now }
         let event = RequirementStatusChanged {
-            RequirementId = req.Id
-            From          = req.Status
+            RequirementId = data.Id
+            From          = data.Status
             To            = newStatus
             OccurredAt    = now
         }
-        return updated, event
+        return Requirement updatedData, event
     }
 
 // ── Update ────────────────────────────────────────────────────────────────────
@@ -94,6 +140,8 @@ let update
     (req   : Requirement)
     : Result<Requirement, DomainError> =
     result {
+        let (Requirement data) = req
+
         let! title =
             match input.Title with
             | Some t -> RequirementTitle.create t |> Result.map Some
@@ -105,12 +153,12 @@ let update
             | None   -> Ok None
 
         let now = Timestamp.now ()
-        return {
-            req with
-                Title              = title              |> Option.defaultValue req.Title
-                Description        = input.Description  |> Option.defaultValue req.Description
-                Priority           = input.Priority     |> Option.defaultValue req.Priority
-                AcceptanceCriteria = criteria           |> Option.defaultValue req.AcceptanceCriteria
+        return Requirement {
+            data with
+                Title              = title              |> Option.defaultValue data.Title
+                Description        = input.Description  |> Option.defaultValue data.Description
+                Priority           = input.Priority     |> Option.defaultValue data.Priority
+                AcceptanceCriteria = criteria           |> Option.defaultValue data.AcceptanceCriteria
                 UpdatedAt          = now
         }
     }

@@ -7,8 +7,17 @@
     <Compile Include="Common/Ports.fs" />
     <Compile Include="Requirements/Commands.fs" />
     <Compile Include="Requirements/Queries.fs" />
+    <Compile Include="Requirements/RequirementReadStore.fs" />
     <Compile Include="Requirements/CommandHandlers.fs" />
     <Compile Include="Requirements/QueryHandlers.fs" />
+    <Compile Include="BacklogItems/Commands.fs" />
+    <Compile Include="BacklogItems/Queries.fs" />
+    <Compile Include="BacklogItems/CommandHandlers.fs" />
+    <Compile Include="BacklogItems/QueryHandlers.fs" />
+    <Compile Include="Sprints/Commands.fs" />
+    <Compile Include="Sprints/Queries.fs" />
+    <Compile Include="Sprints/CommandHandlers.fs" />
+    <Compile Include="Sprints/QueryHandlers.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Winslow.Domain\Winslow.Domain.fsproj" />

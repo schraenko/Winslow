@@ -50,3 +50,19 @@
 - Infrastructure uses in-memory storage (no persistence between restarts)
 - Docker compose mounts `backend/migrations/` as init scripts — schema is PostgreSQL-specific (UUID gen, JSONB, pgcrypto)
 - No CI, no pre-commit hooks, no task runner config files
+
+## Decision Log
+- Every design discussion must be saved to `docs/decisions/YYYY-MM-DD_topic.md`
+- Include the context, all options considered, the final decision with rationale, and a list of files updated
+- This applies to every conversation, not just P-2
+
+## Conversation Transcript
+- Every conversation in this project must be continuously appended to
+  `docs/decisions/YYYY-MM-DD_conversation-transcript.md`
+- Capture the raw output exactly as it appears — including user messages,
+  assistant responses, thinking blocks with timings (`+ Thought: 4.5s`),
+  system reminders, UI markers (`▣ Build · Big Pickle · 12.1s`), and
+  any other system output
+- If the file doesn't exist yet for the current date, create it at the
+  start of the conversation
+- Append new exchanges as they happen throughout the session

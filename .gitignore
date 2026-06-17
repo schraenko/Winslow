@@ -42,6 +42,9 @@ build/
 # Coverage
 coverage/
 
+# Decision records / conversation transcripts
+docs/decisions/
+
 # IDE
 .idea/
 *.iml

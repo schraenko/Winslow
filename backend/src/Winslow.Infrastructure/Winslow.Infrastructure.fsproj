@@ -4,8 +4,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="InMemoryEventStore.fs" />
+    <Compile Include="InMemoryRequirementReadStore.fs" />
     <Compile Include="InMemoryEventPublisher.fs" />
     <Compile Include="InMemoryRequirementRepository.fs" />
+    <Compile Include="InMemoryBacklogItemRepository.fs" />
+    <Compile Include="InMemorySprintRepository.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Winslow.Domain\Winslow.Domain.fsproj" />

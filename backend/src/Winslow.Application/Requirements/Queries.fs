@@ -30,17 +30,3 @@ type RequirementReadModel = {
     CreatedAt          : string
     UpdatedAt          : string
 }
-
-type RequirementListItem = {
-    Id                 : string
-    ProjectId          : string
-    Title              : string
-    Description        : string
-    Status             : string
-    Priority           : string
-    Kind               : string
-    AcceptanceCriteria : string list
-    AuthorId           : string
-    CreatedAt          : string
-    UpdatedAt          : string
-}

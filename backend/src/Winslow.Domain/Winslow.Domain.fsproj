@@ -9,6 +9,12 @@
     <Compile Include="Requirements/RequirementTypes.fs" />
     <Compile Include="Requirements/RequirementEvents.fs" />
     <Compile Include="Requirements/Requirement.fs" />
+    <Compile Include="BacklogItems/BacklogItemTypes.fs" />
+    <Compile Include="BacklogItems/BacklogItemEvents.fs" />
+    <Compile Include="BacklogItems/BacklogItem.fs" />
+    <Compile Include="Sprints/SprintTypes.fs" />
+    <Compile Include="Sprints/SprintEvents.fs" />
+    <Compile Include="Sprints/Sprint.fs" />
     <Compile Include="Projects/ProjectTypes.fs" />
     <Compile Include="Projects/Project.fs" />
   </ItemGroup>
